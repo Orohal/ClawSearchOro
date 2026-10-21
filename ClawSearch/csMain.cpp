@@ -1,5 +1,5 @@
 #include "csMain.h"
-
+#include "IupUIManager.h"
 #include "plugin.h"
 
 CLAW_CALLBACK(SearchWindowClosing);
@@ -12,6 +12,7 @@ int _claw_ResultClicked(Ihandle* handle, char* text, int item, int state) { _csM
 csMain::csMain()
 	: m_scanner(this)
 {
+	m_ui = new IupUIManager();
 	m_hDialog = nullptr;
 
 	m_hButtonFirstScan = nullptr;
@@ -66,30 +67,30 @@ int csMain::SearchWindowClosing()
 
 void csMain::PerformScan(bool firstScan)
 {
-	IupSetAttribute(m_hButtonFirstScan, "ACTIVE", "NO");
-	IupSetAttribute(m_hButtonNextScan, "ACTIVE", "NO");
-	IupSetAttribute(m_hComboScanType, "ACTIVE", "NO");
+	m_ui->SetButtonActive("ScanFirst", false);
+	m_ui->SetButtonActive("ScanNext", false);
+	// ... (Rest der Logik anpassen)
 
-	m_scanner.m_inputText = IupGetAttribute(m_hTextInput, "VALUE");
-	m_scanner.m_inputIsHex = !strcmp(IupGetAttribute(m_hCheckHex, "VALUE"), "ON");
-	m_scanner.m_pauseWhileScanning = DbgIsRunning() && !strcmp(IupGetAttribute(m_hCheckPauseWhileScanning, "VALUE"), "ON");
+	m_scanner.m_inputText = m_ui->GetInputValue("TextInput");
+	m_scanner.m_inputIsHex = !strcmp(m_ui->GetInputValue("CheckHex"), "ON");
+	m_scanner.m_pauseWhileScanning = DbgIsRunning() && !strcmp(m_ui->GetInputValue("CheckPause"), "ON");
 
-	if (!strcmp(IupGetAttribute(m_hCheckFastScan, "VALUE"), "ON")) {
-		sscanf(IupGetAttribute(m_hTextFastScanAlign, "VALUE"), "%d", &m_scanner.m_scanStep);
+	if (!strcmp(m_ui->GetInputValue("CheckFastScan"), "ON")) {
+		sscanf(m_ui->GetInputValue("TextFastScanAlign"), "%d", &m_scanner.m_scanStep);
 
 		if (m_scanner.m_scanStep < 1) {
 			m_scanner.m_scanStep = 1;
 		}
 	}
 
-	m_scanner.m_currentScanFloatTruncate = !strcmp(IupGetAttribute(m_hFloatMethod, "VALUE"), "trunc");
-	m_scanner.m_currentScanFloatRound = !strcmp(IupGetAttribute(m_hFloatMethod, "VALUE"), "round");
-	m_scanner.m_currentScanFloatRound2 = !strcmp(IupGetAttribute(m_hFloatMethod, "VALUE"), "round2");
+	m_scanner.m_currentScanFloatTruncate = !strcmp(m_ui->GetInputValue("FloatMethod"), "trunc");
+	m_scanner.m_currentScanFloatRound = !strcmp(m_ui->GetInputValue("FloatMethod"), "round");
+	m_scanner.m_currentScanFloatRound2 = !strcmp(m_ui->GetInputValue("FloatMethod"), "round2");
 
 	m_scanner.PerformScan(firstScan);
 
-	IupSetAttribute(m_hListResults, "REMOVEITEM", "ALL");
-	IupSetAttribute(m_hListResults, "AUTOREDRAW", "NO");
+	// TODO: Replace list updates
+	// m_ui->ClearList("Results");
 
 	size_t numResults = m_scanner.m_results.len();
 
@@ -117,9 +118,9 @@ void csMain::PerformScan(bool firstScan)
 	IupSetAttribute(m_hListResults, "AUTOREDRAW", "YES");
 	IupRedraw(m_hListResults, 1);
 
-	IupSetAttribute(m_hButtonFirstScan, "ACTIVE", "YES");
-	IupSetAttribute(m_hButtonNextScan, "ACTIVE", "YES");
-	IupSetAttribute(m_hComboScanType, "ACTIVE", "YES");
+	m_ui->SetButtonActive("ScanFirst", true);
+	m_ui->SetButtonActive("ScanNext", true);
+	m_ui->SetButtonActive("ComboScanType", true);
 }
 
 int csMain::FirstScan()
@@ -233,86 +234,18 @@ void csMain::Open()
 		return;
 	}
 
-	m_hButtonFirstScan = IupButton("First Scan", "ScanFirst");
-	m_hButtonNextScan = IupButton("Next Scan", "ScanNext");
-	Ihandle* hButtons = IupSetAttributes(IupHbox(m_hButtonFirstScan, m_hButtonNextScan, nullptr), "MARGIN=0x0, GAP=5");
-
-	IupSetAttribute(m_hButtonNextScan, "ACTIVE", "NO");
-
-	CLAW_SETCALLBACK(m_hButtonFirstScan, "ACTION", FirstScan);
-	CLAW_SETCALLBACK(m_hButtonNextScan, "ACTION", NextScan);
-
-	m_hCheckHex = IupToggle("Hex", nullptr);
-	m_hTextInput = IupSetAttributes(IupText(nullptr), "EXPAND=HORIZONTAL");
+	m_ui->CreateButton("ScanFirst", "First Scan", nullptr); // Callback noch anzupassen
+	m_ui->CreateButton("ScanNext", "Next Scan", nullptr);
+	m_ui->CreateToggle("CheckHex", "Hex");
+	m_ui->CreateText("TextInput");
 	Ihandle* hInput = IupSetAttributes(IupHbox(m_hCheckHex, m_hTextInput, nullptr), "MARGIN=0x0, GAP=5");
 
-	m_hComboScanType = IupList(nullptr);
-	IupSetAttribute(m_hComboScanType, "DROPDOWN", "YES");
-	IupSetAttribute(m_hComboScanType, "EXPAND", "HORIZONTAL");
-	IupSetAttribute(m_hComboScanType, "VISIBLEITEMS", "10");
-	SetScanTypeCombo(true);
-	Ihandle* hScanType = IupSetAttributes(IupHbox(IupLabel("Scan type"), m_hComboScanType, nullptr), "MARGIN=0x0, GAP=5");
-	CLAW_SETCALLBACK(m_hComboScanType, "ACTION", ScanValueTypeChanged);
-
-	m_hComboValueType = IupList(nullptr);
-	IupSetAttribute(m_hComboValueType, "DROPDOWN", "YES");
-	IupSetAttribute(m_hComboValueType, "EXPAND", "HORIZONTAL");
-	IupSetAttribute(m_hComboValueType, "VISIBLEITEMS", "10");
-	IupSetAttribute(m_hComboValueType, "1", "Byte");
-	IupSetAttribute(m_hComboValueType, "2", "2 Bytes");
-	IupSetAttribute(m_hComboValueType, "3", "4 Bytes");
-	IupSetAttribute(m_hComboValueType, "4", "8 Bytes");
-	IupSetAttribute(m_hComboValueType, "5", "Float");
-	IupSetAttribute(m_hComboValueType, "6", "Double");
-	IupSetInt(m_hComboValueType, "VALUE", (int)m_scanner.m_currentScanValueType);
-	Ihandle* hValueType = IupSetAttributes(IupHbox(IupLabel("Value type"), m_hComboValueType, nullptr), "MARGIN=0x0, GAP=5");
-	CLAW_SETCALLBACK(m_hComboValueType, "ACTION", ScanValueTypeChanged);
-
-	m_hCheckFastScan = IupToggle("Fast Scan", nullptr);
-	IupSetAttribute(m_hCheckFastScan, "VALUE", "ON");
-
-	m_hTextFastScanAlign = IupText(nullptr);
-	IupSetAttribute(m_hTextFastScanAlign, "VALUE", "4");
-
-	Ihandle* radioFloatTruncated = IupToggle("Truncated", nullptr);
-	Ihandle* radioFloatRounded = IupToggle("Rounded", nullptr);
-	Ihandle* radioFloatRoundedExtreme = IupToggle("Rounded (Extreme)", nullptr);
-
-	IupSetHandle("trunc", radioFloatTruncated);
-	IupSetHandle("round", radioFloatRounded);
-	IupSetHandle("round2", radioFloatRoundedExtreme);
-
-	m_hFloatMethod = IupRadio(IupSetAttributes(IupVbox(radioFloatTruncated, radioFloatRounded, radioFloatRoundedExtreme, nullptr), "MARGIN=0x0, GAP=5"));
-	IupSetAttribute(m_hFloatMethod, "ACTIVE", "NO");
-
-	Ihandle* hFastScan = IupSetAttributes(IupHbox(m_hCheckFastScan, m_hTextFastScanAlign, nullptr), "MARGIN=0x0, GAP=5");
-
-	m_hCheckPauseWhileScanning = IupToggle("Pause while scanning", nullptr);
-
-	m_hFrameScanOptions = IupFrame(IupVbox(
-		m_hFloatMethod,
-		hFastScan,
-		m_hCheckPauseWhileScanning,
-		nullptr)
-	);
-	IupSetAttribute(m_hFrameScanOptions, "TITLE", "Scan Options");
-	IupSetAttribute(m_hFrameScanOptions, "EXPAND", "YES");
-
-	Ihandle* vControls = IupSetAttributes(IupVbox(
-		hButtons,
-		hInput,
-		hScanType,
-		hValueType,
-		m_hFrameScanOptions,
-		nullptr), "MARGIN=10x0, GAP=5, EXPAND=HORIZONTAL");
-
-	m_hListResults = IupList(nullptr);
-	IupSetAttribute(m_hListResults, "FONT", "Consolas, 9");
-	IupSetAttribute(m_hListResults, "EXPAND", "YES");
-	IupSetAttribute(m_hListResults, "1", nullptr);
-	IupSetCallback(m_hListResults, "ACTION", (Icallback)_claw_ResultClicked);
-
-	m_hDialog = IupDialog(IupSetAttributes(IupHbox(m_hListResults, vControls, nullptr), "PADDING=4x4, MARGIN=10x10"));
+	m_ui->CreateList("ComboScanType");
+	m_ui->CreateList("ComboValueType");
+	m_ui->CreateToggle("CheckFastScan", "Fast Scan");
+	m_ui->CreateText("TextFastScanAlign");
+	m_ui->CreateToggle("CheckPause", "Pause while scanning");
+	m_ui->CreateList("Results");
 
 	IupSetAttribute(m_hDialog, "TITLE", "ClawSearch");
 	IupSetAttribute(m_hDialog, "SIZE", "500x200");

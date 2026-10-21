@@ -4,12 +4,15 @@
 #include <iupcontrols.h>
 
 #include "pluginsdk/bridgemain.h"
+#include "IUIManager.h"
 
 #include "csScanner.h"
 
 class csMain
 {
 public:
+	// UI Manager
+	IUIManager* m_ui;
 	// The main dialog
 	Ihandle* m_hDialog;
 
