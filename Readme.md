@@ -38,7 +38,7 @@ Das Projekt nutzt die von x64dbg bereitgestellten Bibliotheken:
 
 1. Klone dieses Repository:
   ```sh
-  git clone https://github.com/Orohal/ClawSearch.git
+  git clone https://github.com/Orohal/ClawSearchOro.git
   ```
 2. Öffne `ClawSearch.sln` in **Visual Studio 2019 oder neuer**.
 3. Baue die Lösung:
