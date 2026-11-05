@@ -34,19 +34,38 @@ Das Plugin basiert auf dem Original-Projekt [codecat/ClawSearch](https://github.
 
 ## Selbst bauen
 
-Das Projekt nutzt die von x64dbg bereitgestellten Bibliotheken:
+### Voraussetzungen
+
+- **Visual Studio 2019 oder neuer** (Community reicht) oder **Build Tools** mit der Komponente *Desktop-Entwicklung mit C++*
+- Git (zum Klonen)
+- MSVC-Toolset für **x64 und x86** (beide Plattformen werden gebaut)
+
+### Projektstruktur
+
+Das Repository enthält alle Abhängigkeiten direkt im Repo – ein Submodule-Init ist nicht nötig:
+
+| Ordner | Inhalt |
+|---|---|
+| `ClawSearch/` | Der eigentliche Plugin-Quellcode (Scanner, UI, x64dbg-Anbindung) |
+| `ClawSearch/pluginsdk/` | Das Plugin-SDK von x64dbg (Header + Import-Bibliotheken) |
+| `iup/` | [IUP](https://www.tecgraf.puc-rio.br/iup/) GUI-Bibliothek – wird für das Plugin-Fenster benötigt |
+| `cd/` | [CD](https://www.tecgraf.puc-rio.br/cd/) Canvas-Bibliothek – wird beim Linken indirekt über IUPs Canvas braucht (`iupcd`) |
+
+> **Hinweis:** `cd/` wirkt auf den ersten Blick ungenutzt (der Plugin-Code ruft keine `cd*`-Funktionen auf), ist aber fürs Linken unverzichtbar, da `iupcd` die CD-Symbole auflöst.
+
+### Bauen
 
 1. Klone dieses Repository:
   ```sh
   git clone https://github.com/Orohal/ClawSearchOro.git
   ```
-2. Öffne `ClawSearch.sln` in **Visual Studio 2019 oder neuer**.
+2. Öffne `ClawSearch.sln` in Visual Studio.
 3. Baue die Lösung:
    - Konfiguration `Release`
    - Plattform `x64` (für 64-Bit-Prozesse) bzw. `x86` (für 32-Bit-Prozesse)
 4. Die fertigen Plugins liegen unter `x64\Release\` bzw. `Release\`.
 
-Alternativ baust du per Kommandozeile mit MSBuild:
+Alternativ per Kommandozeile mit MSBuild:
 
 ```sh
 msbuild.exe ClawSearch.sln /m /verbosity:minimal /t:Rebuild /p:Configuration=Release /p:Platform=x64
@@ -70,4 +89,5 @@ Da dieses Projekt ein Fork ist, bleibt die originale GPL-3.0-Lizenzdatei unverä
 - **[codecat](https://github.com/codecat)** – Autor des ursprünglichen Projekts
 - **[Orohal](https://github.com/Orohal)** – Pflege dieses Forks
 - **[x64dbg](https://x64dbg.com)** und sein Plugin-SDK
+- **[IUP](https://www.tecgraf.puc-rio.br/iup/)** und **[CD](https://www.tecgraf.puc-rio.br/cd/)** (Tecgraf, PUC-Rio) – GUI- und Canvas-Bibliotheken
 - **[Cheat Engine](https://www.cheatengine.org/)** – Inspiration
